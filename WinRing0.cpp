@@ -20,7 +20,7 @@ using std::string;
 uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) {
     uint32_t result;
     char path[255]= "\0";
-    sprintf(path, "/proc/bus/pci/00/%x.%x", device, function);
+    snprintf(path, sizeof(path), "/proc/bus/pci/00/%02x.%x", device, function);
 
     int pci = open(path, O_RDONLY);
     if (pci == -1) {
@@ -35,7 +35,7 @@ uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) 
 
 void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uint32_t value) {
     char path[255]= "\0";
-    sprintf(path, "/proc/bus/pci/00/%x.%x", device, function);
+    snprintf(path, sizeof(path), "/proc/bus/pci/00/%02x.%x", device, function);
 
     int pci = open(path, O_WRONLY);
     if (pci == -1) {
@@ -72,7 +72,7 @@ void Wrmsr(uint32_t index, const uint64_t& value) {
     char path[255]= "\0";
 
     for (int i = 0; i < get_num_cpu(); i++) {
-        sprintf(path, "/dev/cpu/%d/msr", i);
+        snprintf(path, sizeof(path), "/dev/cpu/%u/msr", i);
         int msr = open(path, O_WRONLY);
         if (msr == -1) {
             perror("Failed to open msr device for writing");
