@@ -63,15 +63,17 @@ uint64_t Rdmsr(uint32_t index) {
     return result;
 }
 
-int get_num_cpu() {
+static int get_num_cpu() {
     CpuidRegs regs = Cpuid(0x80000008);
     return 1 + (regs.ecx&0xff);
 }
 
 void Wrmsr(uint32_t index, const uint64_t& value) {
     char path[255]= "\0";
+    int ncpu;
 
-    for (int i = 0; i < get_num_cpu(); i++) {
+    ncpu = get_num_cpu();
+    for (int i = 0; i < ncpu; i++) {
         snprintf(path, sizeof(path), "/dev/cpu/%u/msr", i);
         int msr = open(path, O_WRONLY);
         if (msr == -1) {
