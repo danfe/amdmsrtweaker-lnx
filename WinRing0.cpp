@@ -8,6 +8,14 @@
 #include <cstdio>
 #include <cstdlib>
 
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/cpuctl.h>
+#include <sys/pciio.h>
+#include <err.h>
+#define _PATH_DEVPCI "/dev/pci"
+#define _PATH_DEVCPUCTL "/dev/cpuctl0"
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -17,6 +25,7 @@
 using std::exception;
 using std::string;
 
+#if defined(__linux__)
 uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) {
     uint32_t result;
     char path[255]= "\0";
@@ -105,4 +114,104 @@ CpuidRegs Cpuid(uint32_t index) {
 
     return result;
 }
+#elif defined(__FreeBSD__)
+uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) {
+    struct pci_io pi;
+    int fd;
 
+    fd = open(_PATH_DEVPCI, O_RDWR, 0);
+    if (fd < 0)
+        err(-1, "Failed to open %s", _PATH_DEVPCI);
+
+    pi.pi_sel.pc_domain = pi.pi_sel.pc_bus = 0;
+    pi.pi_sel.pc_dev = device;
+    pi.pi_sel.pc_func = function;
+    pi.pi_reg = regAddress;
+    pi.pi_width = 4;
+
+    if (ioctl(fd, PCIOCREAD, &pi) < 0)
+        err(-2, "ioctl(PCIOCREAD) on %s", _PATH_DEVPCI);
+    close(fd);
+
+    return (pi.pi_data);
+}
+
+void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uint32_t value) {
+    struct pci_io pi;
+    int fd;
+
+    fd = open(_PATH_DEVPCI, O_RDWR, 0);
+    if (fd < 0)
+        err(-1, "Failed to open %s", _PATH_DEVPCI);
+
+    pi.pi_sel.pc_domain = pi.pi_sel.pc_bus = 0;
+    pi.pi_sel.pc_dev = device;
+    pi.pi_sel.pc_func = function;
+    pi.pi_reg = regAddress;
+    pi.pi_width = 4;
+    pi.pi_data = value;
+
+    if (ioctl(fd, PCIOCWRITE, &pi) < 0)
+        err(-2, "ioctl(PCIOCWRITE) on %s", _PATH_DEVPCI);
+    close(fd);
+}
+
+uint64_t Rdmsr(uint32_t index) {
+    cpuctl_msr_args_t ma;
+    int fd;
+
+    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    if (fd < 0)
+        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+
+    ma.msr = index;
+
+    if (ioctl(fd, CPUCTL_RDMSR, &ma) < 0)
+        err(-2, "ioctl(CPUCTL_RDMSR) on %s", _PATH_DEVCPUCTL);
+    close(fd);
+
+    return ma.data;
+}
+
+void Wrmsr(uint32_t index, const uint64_t& value) {
+    cpuctl_msr_args_t ma;
+    int fd;
+
+    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    if (fd < 0)
+        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+
+    ma.msr = index;
+    ma.data = value;
+
+    if (ioctl(fd, CPUCTL_WRMSR, &ma) < 0)
+        err(-2, "ioctl(CPUCTL_WRMSR) on %s", _PATH_DEVCPUCTL);
+    close(fd);
+}
+
+CpuidRegs Cpuid(uint32_t index) {
+    CpuidRegs result;
+    cpuctl_cpuid_args_t ca;
+    int fd;
+
+    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    if (fd < 0)
+        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+
+    ca.level = index;
+
+    if (ioctl(fd, CPUCTL_CPUID, &ca) < 0)
+        err(-2, "ioctl(CPUCTL_CPUID) on %s", _PATH_DEVCPUCTL);
+    close(fd);
+
+    // XXX: would memcpy()/bcopy() suffice here?
+    result.eax = ca.data[0];
+    result.ebx = ca.data[1];
+    result.ecx = ca.data[2];
+    result.edx = ca.data[3];
+
+    return result;
+}
+#else
+#error >>> unsupported operating system <<<
+#endif

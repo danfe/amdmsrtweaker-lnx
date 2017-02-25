@@ -3,8 +3,8 @@ AMDMsrTweaker
 Description
 -----------
 
-AmdMsrTweaker is a command line tool for Windows which allows to reprogram the 
-P-States used by various CPUs and APUs of AMD for their Cool&Quiet power 
+AmdMsrTweaker is a command line tool for Windows which allows to reprogram the
+P-States used by various CPUs and APUs of AMD for their Cool&Quiet power
 saving technology.
 
 The following CPU lines are supported:
@@ -40,6 +40,8 @@ The voltage step supported on your platform is indicated on the info output.
 
 Version History
 ---------------
+v1.1	2017-02-24
+- ported to FreeBSD (no version bump)
 
 v1.1	2013-04-09
 - Trinity and Richland support
