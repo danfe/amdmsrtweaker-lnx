@@ -3,7 +3,7 @@ AMDMsrTweaker
 Description
 -----------
 
-AmdMsrTweaker is a command line tool for Windows which allows to reprogram the
+AmdMsrTweaker is a command line tool which allows to reprogram the
 P-States used by various CPUs and APUs of AMD for their Cool&Quiet power
 saving technology.
 
