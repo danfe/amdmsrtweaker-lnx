@@ -1,5 +1,5 @@
 CXX ?= c++
-CXXFLAGS ?= -Os -Wall -Wextra -pedantic
+CXXFLAGS ?= -Os -Wall -Wextra -Werror -pedantic
 
 all: amdmsrt
 
