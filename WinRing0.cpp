@@ -119,7 +119,7 @@ uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) 
     struct pci_io pi;
     int fd;
 
-    fd = open(_PATH_DEVPCI, O_RDWR, 0);
+    fd = open(_PATH_DEVPCI, O_RDWR);
     if (fd < 0)
         err(-1, "Failed to open %s", _PATH_DEVPCI);
 
@@ -127,7 +127,7 @@ uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) 
     pi.pi_sel.pc_dev = device;
     pi.pi_sel.pc_func = function;
     pi.pi_reg = regAddress;
-    pi.pi_width = 4;
+    pi.pi_width = sizeof(uint32_t);
 
     if (ioctl(fd, PCIOCREAD, &pi) < 0)
         err(-2, "ioctl(PCIOCREAD) on %s", _PATH_DEVPCI);
@@ -140,7 +140,7 @@ void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uin
     struct pci_io pi;
     int fd;
 
-    fd = open(_PATH_DEVPCI, O_RDWR, 0);
+    fd = open(_PATH_DEVPCI, O_RDWR);
     if (fd < 0)
         err(-1, "Failed to open %s", _PATH_DEVPCI);
 
@@ -148,7 +148,7 @@ void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uin
     pi.pi_sel.pc_dev = device;
     pi.pi_sel.pc_func = function;
     pi.pi_reg = regAddress;
-    pi.pi_width = 4;
+    pi.pi_width = sizeof(uint32_t);
     pi.pi_data = value;
 
     if (ioctl(fd, PCIOCWRITE, &pi) < 0)
@@ -157,58 +157,58 @@ void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uin
 }
 
 uint64_t Rdmsr(uint32_t index) {
-    cpuctl_msr_args_t ma;
+    cpuctl_msr_args_t cma;
     int fd;
 
-    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    fd = open(_PATH_DEVCPUCTL, O_RDWR);
     if (fd < 0)
         err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
 
-    ma.msr = index;
+    cma.msr = index;
 
-    if (ioctl(fd, CPUCTL_RDMSR, &ma) < 0)
+    if (ioctl(fd, CPUCTL_RDMSR, &cma) < 0)
         err(-2, "ioctl(CPUCTL_RDMSR) on %s", _PATH_DEVCPUCTL);
     close(fd);
 
-    return ma.data;
+    return cma.data;
 }
 
 void Wrmsr(uint32_t index, const uint64_t& value) {
-    cpuctl_msr_args_t ma;
+    cpuctl_msr_args_t cma;
     int fd;
 
-    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    fd = open(_PATH_DEVCPUCTL, O_RDWR);
     if (fd < 0)
         err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
 
-    ma.msr = index;
-    ma.data = value;
+    cma.msr = index;
+    cma.data = value;
 
-    if (ioctl(fd, CPUCTL_WRMSR, &ma) < 0)
+    if (ioctl(fd, CPUCTL_WRMSR, &cma) < 0)
         err(-2, "ioctl(CPUCTL_WRMSR) on %s", _PATH_DEVCPUCTL);
     close(fd);
 }
 
 CpuidRegs Cpuid(uint32_t index) {
     CpuidRegs result;
-    cpuctl_cpuid_args_t ca;
+    cpuctl_cpuid_args_t cca;
     int fd;
 
-    fd = open(_PATH_DEVCPUCTL, O_RDWR, 0);
+    fd = open(_PATH_DEVCPUCTL, O_RDWR);
     if (fd < 0)
         err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
 
-    ca.level = index;
+    cca.level = index;
 
-    if (ioctl(fd, CPUCTL_CPUID, &ca) < 0)
+    if (ioctl(fd, CPUCTL_CPUID, &cca) < 0)
         err(-2, "ioctl(CPUCTL_CPUID) on %s", _PATH_DEVCPUCTL);
     close(fd);
 
     // XXX: would memcpy()/bcopy() suffice here?
-    result.eax = ca.data[0];
-    result.ebx = ca.data[1];
-    result.ecx = ca.data[2];
-    result.edx = ca.data[3];
+    result.eax = cca.data[0];
+    result.ebx = cca.data[1];
+    result.ecx = cca.data[2];
+    result.edx = cca.data[3];
 
     return result;
 }
