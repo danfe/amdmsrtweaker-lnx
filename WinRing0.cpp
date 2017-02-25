@@ -14,7 +14,7 @@
 #include <sys/pciio.h>
 #include <err.h>
 #define _PATH_DEVPCI "/dev/pci"
-#define _PATH_DEVCPUCTL "/dev/cpuctl0"
+#define _PATH_DEVCPUCTL "/dev/cpuctl" // index is appended in situ
 #endif
 #include <fcntl.h>
 #include <unistd.h>
@@ -24,6 +24,11 @@
 
 using std::exception;
 using std::string;
+
+static int get_num_cpu() {
+    CpuidRegs regs = Cpuid(0x80000008);
+    return 1 + (regs.ecx & 0xff);
+}
 
 #if defined(__linux__)
 uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) {
@@ -70,11 +75,6 @@ uint64_t Rdmsr(uint32_t index) {
     close(msr);
 
     return result;
-}
-
-static int get_num_cpu() {
-    CpuidRegs regs = Cpuid(0x80000008);
-    return 1 + (regs.ecx&0xff);
 }
 
 void Wrmsr(uint32_t index, const uint64_t& value) {
@@ -160,33 +160,37 @@ uint64_t Rdmsr(uint32_t index) {
     cpuctl_msr_args_t cma;
     int fd;
 
-    fd = open(_PATH_DEVCPUCTL, O_RDWR);
+    fd = open(_PATH_DEVCPUCTL "0", O_RDWR);
     if (fd < 0)
-        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+        err(-1, "Failed to open %s", _PATH_DEVCPUCTL "0");
 
     cma.msr = index;
 
     if (ioctl(fd, CPUCTL_RDMSR, &cma) < 0)
-        err(-2, "ioctl(CPUCTL_RDMSR) on %s", _PATH_DEVCPUCTL);
+        err(-2, "ioctl(CPUCTL_RDMSR) on %s", _PATH_DEVCPUCTL "0");
     close(fd);
 
     return cma.data;
 }
 
 void Wrmsr(uint32_t index, const uint64_t& value) {
+    char path[32];
     cpuctl_msr_args_t cma;
-    int fd;
-
-    fd = open(_PATH_DEVCPUCTL, O_RDWR);
-    if (fd < 0)
-        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+    int fd, ncpu;
 
     cma.msr = index;
     cma.data = value;
 
-    if (ioctl(fd, CPUCTL_WRMSR, &cma) < 0)
-        err(-2, "ioctl(CPUCTL_WRMSR) on %s", _PATH_DEVCPUCTL);
-    close(fd);
+    ncpu = get_num_cpu();
+    for (int i = 0; i < ncpu; i++) {
+        snprintf(path, sizeof(path), _PATH_DEVCPUCTL "%d", i);
+        fd = open(path, O_RDWR);
+        if (fd < 0)
+            err(-1, "Failed to open %s", path);
+        if (ioctl(fd, CPUCTL_WRMSR, &cma) < 0)
+            warn("ioctl(CPUCTL_WRMSR) on %s", path);
+        close(fd);
+    }
 }
 
 CpuidRegs Cpuid(uint32_t index) {
@@ -194,14 +198,14 @@ CpuidRegs Cpuid(uint32_t index) {
     cpuctl_cpuid_args_t cca;
     int fd;
 
-    fd = open(_PATH_DEVCPUCTL, O_RDWR);
+    fd = open(_PATH_DEVCPUCTL "0", O_RDWR);
     if (fd < 0)
-        err(-1, "Failed to open %s", _PATH_DEVCPUCTL);
+        err(-1, "Failed to open %s", _PATH_DEVCPUCTL "0");
 
     cca.level = index;
 
     if (ioctl(fd, CPUCTL_CPUID, &cca) < 0)
-        err(-2, "ioctl(CPUCTL_CPUID) on %s", _PATH_DEVCPUCTL);
+        err(-2, "ioctl(CPUCTL_CPUID) on %s", _PATH_DEVCPUCTL "0");
     close(fd);
 
     // XXX: would memcpy()/bcopy() suffice here?
