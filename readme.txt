@@ -9,8 +9,8 @@ saving technology.
 
 The following CPU lines are supported:
 - K10 / K10.5 CPUs (various Athlon/Phenom models): CPU P-States, NB P-States on supported models
-- Llano (Family 12h):  CPU P-States
-- Ontario / Zacate (Family 14h):  CPU P-States
+- Llano (Family 12h): CPU P-States
+- Ontario / Zacate (Family 14h): CPU P-States
 - Bulldozer, Piledriver, Trinity, Richland, Kaveri (Family 15h): CPU P-States, NB P-States
 
 
