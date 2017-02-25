@@ -28,7 +28,7 @@ using std::string;
 #if defined(__linux__)
 uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) {
     uint32_t result;
-    char path[255]= "\0";
+    char path[32];
     snprintf(path, sizeof(path), "/proc/bus/pci/00/%02x.%x", device, function);
 
     int pci = open(path, O_RDONLY);
@@ -43,7 +43,7 @@ uint32_t ReadPciConfig(uint32_t device, uint32_t function, uint32_t regAddress) 
 }
 
 void WritePciConfig(uint32_t device, uint32_t function, uint32_t regAddress, uint32_t value) {
-    char path[255]= "\0";
+    char path[32];
     snprintf(path, sizeof(path), "/proc/bus/pci/00/%02x.%x", device, function);
 
     int pci = open(path, O_WRONLY);
@@ -78,7 +78,7 @@ static int get_num_cpu() {
 }
 
 void Wrmsr(uint32_t index, const uint64_t& value) {
-    char path[255]= "\0";
+    char path[32];
     int ncpu;
 
     ncpu = get_num_cpu();
